@@ -1,1 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F-Store Official - Jual Beli Produk Media Sosial Terpercaya</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
+    <style>
+        /* Smooth scroll effect */
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #0f172a; /* slate-900 */
+            color: #cbd5e1; /* slate-300 */
+        }
+        .category-card {
+            background-color: #1e293b; /* slate-800 */
+            border: 1px solid #334155; /* slate-700 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1rem;
+            text-align: center;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        @media (min-width: 768px) {
+            .category-card {
+                padding: 2rem;
+            }
+        }
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.1), 0 4px 6px -2px rgba(56, 189, 248, 0.05);
+        }
+        .section-title {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            color: #ffffff; /* text-white */
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        /* Scroll margin for sticky header */
+        #jelajahi, #cara-order, #tentang-kami {
+            scroll-margin-top: 6rem; /* Adjust this value if header height changes */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="bg-slate-800/50 backdrop-blur-lg sticky top-0 z-50 border-b border-slate-700">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center">
+                    <a href="#" class="flex items-center">
+                        <img src="LOGO.png" alt="F-Store Official Logo" class="h-16 w-auto">
+                    </a>
+                </div>
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="flex items-center space-x-4">
+                        <a href="#" class="nav-link text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Beranda</a>
+                        <a href="#jelajahi" class="nav-link text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Produk</a>
+                        <a href="#cara-order" class="nav-link text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Cara Order</a>
+                        <a href="#tentang-kami" class="nav-link text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Tentang Kami</a>
+                    </div>
+                </div>
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                        <span class="sr-only">Open main menu</span>
+                        <i data-lucide="menu" class="block h-6 w-6"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <!-- Mobile Menu, show/hide based on menu state. -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#" class="nav-link text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Beranda</a>
+                <a href="#jelajahi" class="nav-link text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Produk</a>
+                <a href="#cara-order" class="nav-link text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Cara Order</a>
+                <a href="#tentang-kami" class="nav-link text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Tentang Kami</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-20 sm:py-24">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
+                Temukan Produk Media Sosial <br class="hidden sm:block"> Terbaik Anda
+            </h2>
+            <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-400">
+                Menyediakan berbagai produk berkualitas untuk Twitter, Instagram, TikTok, dan lainnya dengan proses yang cepat dan aman.
+            </p>
+            <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#jelajahi" class="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                    Mulai Jelajahi
+                </a>
+                <a href="https://wa.me/6285133334542?text=Halo%20F-Store%20Official,%20saya%20ingin%20bertanya%20tentang%20produk%20kustom." target="_blank" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                    Hubungi Kami
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content: Store -->
+    <main id="jelajahi" class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 class="section-title text-center">Pilih Kategori Produk</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+            <a href="produk-twitter.html" class="category-card"><i data-lucide="twitter" class="w-12 h-12 md:w-16 md:h-16 text-sky-400 mx-auto mb-4"></i><h3 class="text-lg md:text-2xl font-bold text-white mb-2">Produk Twitter / X</h3><p class="text-xs md:text-sm text-slate-400">Akun fresh hingga old siap pakai.</p></a>
+            <a href="produk-instagram.html" class="category-card"><i data-lucide="instagram" class="w-12 h-12 md:w-16 md:h-16 text-pink-500 mx-auto mb-4"></i><h3 class="text-lg md:text-2xl font-bold text-white mb-2">Produk Instagram</h3><p class="text-xs md:text-sm text-slate-400">Akun berkualitas berbagai followers.</p></a>
+            <a href="produk-tiktok.html" class="category-card"><i data-lucide="music-4" class="w-12 h-12 md:w-16 md:h-16 text-cyan-400 mx-auto mb-4"></i><h3 class="text-lg md:text-2xl font-bold text-white mb-2">Produk TikTok</h3><p class="text-xs md:text-sm text-slate-400">Akun siap FYP untuk branding.</p></a>
+            <a href="produk-facebook.html" class="category-card"><i data-lucide="facebook" class="w-12 h-12 md:w-16 md:h-16 text-blue-500 mx-auto mb-4"></i><h3 class="text-lg md:text-2xl font-bold text-white mb-2">Produk Facebook</h3><p class="text-xs md:text-sm text-slate-400">Halaman Facebook siap pakai.</p></a>
+            <a href="produk-threads.html" class="category-card"><i data-lucide="at-sign" class="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-4"></i><h3 class="text-lg md:text-2xl font-bold text-white mb-2">Produk Threads</h3><p class="text-xs md:text-sm text-slate-400">Akun baru untuk memulai percakapan.</p></a>
+            <a href="produk-youtube.html" class="category-card"><i data-lucide="youtube" class="w-12 h-12 md:w-16 md:h-16 text-red-500 mx-auto mb-4"></i><h3 class="text-lg md:text-2xl font-bold text-white mb-2">Produk YouTube</h3><p class="text-xs md:text-sm text-slate-400">Channel siap pakai untuk konten.</p></a>
+        </div>
+    </main>
+    
+    <section class="py-20 sm:py-24 bg-slate-800/50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-white text-center mb-12">Mengapa Memilih Produk di F-Store Official?</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+                <div class="text-center"><div class="flex items-center justify-center h-16 w-16 rounded-full bg-sky-500/20 mx-auto mb-4"><i data-lucide="shield-check" class="w-8 h-8 text-sky-400"></i></div><h3 class="text-lg md:text-xl font-semibold text-white mb-2">Kualitas Terjamin</h3><p class="text-slate-400 text-sm">Produk kami terverifikasi untuk memastikan kualitas dan keamanan.</p></div>
+                <div class="text-center"><div class="flex items-center justify-center h-16 w-16 rounded-full bg-emerald-500/20 mx-auto mb-4"><i data-lucide="zap" class="w-8 h-8 text-emerald-400"></i></div><h3 class="text-lg md:text-xl font-semibold text-white mb-2">Proses Cepat</h3><p class="text-slate-400 text-sm">Kami memprioritaskan kecepatan pengiriman dan keamanan transaksi.</p></div>
+                <div class="text-center"><div class="flex items-center justify-center h-16 w-16 rounded-full bg-amber-500/20 mx-auto mb-4"><i data-lucide="message-circle" class="w-8 h-8 text-amber-400"></i></div><h3 class="text-lg md:text-xl font-semibold text-white mb-2">Dukungan Pelanggan</h3><p class="text-slate-400 text-sm">Tim kami siap membantu Anda melalui WhatsApp kapan saja.</p></div>
+                <div class="text-center"><div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-500/20 mx-auto mb-4"><i data-lucide="tag" class="w-8 h-8 text-indigo-400"></i></div><h3 class="text-lg md:text-xl font-semibold text-white mb-2">Harga Kompetitif</h3><p class="text-slate-400 text-sm">Kami menawarkan harga terbaik untuk produk kualitas premium.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="cara-order" class="py-20 sm:py-24">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-white text-center mb-12">Cara Order di F-Store Official</h2>
+            <div class="max-w-4xl mx-auto grid grid-cols-3 gap-4 md:gap-8 text-center">
+                <div class="flex flex-col items-center"><div class="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-slate-700 border-2 border-sky-500 mb-4 text-sky-400 text-xl md:text-2xl font-bold">1</div><h3 class="text-lg md:text-xl font-semibold text-white mb-2">Pilih Produk</h3><p class="text-slate-400 text-sm">Jelajahi kategori dan pilih item yang Anda butuhkan.</p></div>
+                <div class="flex flex-col items-center"><div class="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-slate-700 border-2 border-sky-500 mb-4 text-sky-400 text-xl md:text-2xl font-bold">2</div><h3 class="text-lg md:text-xl font-semibold text-white mb-2">Hubungi via WA</h3><p class="text-slate-400 text-sm">Klik tombol order untuk terhubung langsung dengan kami.</p></div>
+                <div class="flex flex-col items-center"><div class="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-slate-700 border-2 border-sky-500 mb-4 text-sky-400 text-xl md:text-2xl font-bold">3</div><h3 class="text-lg md:text-xl font-semibold text-white mb-2">Selesaikan Transaksi</h3><p class="text-slate-400 text-sm">Tim kami akan memandu Anda untuk proses pembayaran.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="tentang-kami" class="py-20 sm:py-24 bg-slate-800/50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-4">Tentang F-Store Official</h2>
+                    <p class="text-slate-400 mb-4">F-Store Official lahir dari kebutuhan akan platform terpercaya yang menyediakan aset digital berkualitas untuk para kreator, pemasar, dan pebisnis. Kami memahami bahwa membangun kehadiran online yang kuat membutuhkan waktu dan sumber daya. Oleh karena itu, kami hadir untuk memberikan solusi instan melalui produk-produk digital yang terverifikasi dan siap pakai.</p>
+                    <p class="text-slate-400">Misi kami adalah memberdayakan pertumbuhan digital Anda dengan menyediakan produk yang aman, proses yang transparan, dan layanan pelanggan yang responsif. Di F-Store Official, kepercayaan Anda adalah aset terbesar kami.</p>
+                </div>
+                <div class="bg-slate-800 p-8 rounded-lg">
+                    <h3 class="text-2xl font-bold text-white mb-6">Hubungi Kami</h3>
+                    <div class="space-y-4">
+                        <a href="https://wa.me/6285133334542?text=Halo%20F-Store%20Official" target="_blank" class="flex items-center group"><i data-lucide="phone" class="w-6 h-6 text-slate-400 group-hover:text-sky-400 transition-colors"></i><span class="ml-4 text-slate-300 group-hover:text-white transition-colors">+62 851-3333-4542</span></a>
+                        <a href="mailto:kontak@fstoreofficial.com" class="flex items-center group"><i data-lucide="mail" class="w-6 h-6 text-slate-400 group-hover:text-sky-400 transition-colors"></i><span class="ml-4 text-slate-300 group-hover:text-white transition-colors">kontak@fstoreofficial.com</span></a>
+                        <a href="#" class="flex items-center group"><i data-lucide="instagram" class="w-6 h-6 text-slate-400 group-hover:text-sky-400 transition-colors"></i><span class="ml-4 text-slate-300 group-hover:text-white transition-colors">@fstore.official</span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-slate-800 border-t border-slate-700">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-slate-400">
+            <p>&copy; 2024 F-Store Official. Semua Hak Cipta Dilindungi.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            // Toggle mobile menu
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Close mobile menu when a link is clicked
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
