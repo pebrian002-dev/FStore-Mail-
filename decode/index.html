@@ -1,1 +1,769 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FStore Authentic Migration Decoder • 2FA Viewer</title>
 
+    <!-- Tailwind CSS via CDN + konfigurasi kustom -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', '"Fira Code"', 'SF Mono', 'monospace'],
+                        sans: ['"Inter"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards',
+                        'fade-in': 'fadeIn 0.5s ease forwards',
+                        'scale-in': 'scaleIn 0.2s ease-out forwards',
+                        'glow-pulse': 'glowPulse 0.8s ease-out',
+                        'shimmer': 'shimmer 2.5s infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.96)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        },
+                        glowPulse: {
+                            '0%': { boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.6)' },
+                            '70%': { boxShadow: '0 0 0 12px rgba(16, 185, 129, 0)' },
+                            '100%': { boxShadow: '0 0 0 0 rgba(16, 185, 129, 0)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        },
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    },
+                },
+            },
+        }
+    </script>
+
+    <style>
+        /* custom smooth scroll & glassmorphism refinements */
+        * {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: radial-gradient(ellipse at 10% 0%, #0a0f1e 0%, #05080f 100%);
+            background-attachment: fixed;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.12);
+            border-radius: 1.75rem;
+            transition: all 0.25s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            background: rgba(15, 23, 42, 0.7);
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3a5e;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4b76;
+        }
+
+        /* transition for secret blur */
+        .secret-blurred {
+            filter: blur(6px);
+            transition: filter 0.2s ease;
+            user-select: none;
+        }
+        .secret-visible {
+            filter: blur(0px);
+            transition: filter 0.2s ease;
+        }
+
+        /* OTP flash */
+        .otp-flash {
+            animation: gentleFlash 0.4s ease-out;
+        }
+        @keyframes gentleFlash {
+            0% { text-shadow: 0 0 0px rgba(16, 185, 129, 0); transform: scale(1);}
+            30% { text-shadow: 0 0 8px rgba(16, 185, 129, 0.6); transform: scale(1.02);}
+            100% { text-shadow: 0 0 0px rgba(16, 185, 129, 0); transform: scale(1);}
+        }
+
+        /* progress bar smooth */
+        .progress-fill {
+            transition: width 0.95s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        /* shimmer gradient for loading state */
+        .shimmer-bg {
+            background: linear-gradient(110deg, #1e293b 8%, #2d3a5e 18%, #1e293b 33%);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* History item hover */
+        .history-item {
+            transition: all 0.2s ease;
+        }
+        .history-item:hover {
+            background: rgba(56, 189, 248, 0.15);
+            transform: translateX(4px);
+        }
+    </style>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body class="font-sans antialiased text-slate-200">
+
+    <!-- Toast notification yang elegan -->
+    <div id="toast-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-full max-w-sm px-4">
+        <div id="toast" class="pointer-events-auto hidden glass-card py-3 px-5 rounded-2xl shadow-2xl bg-slate-800/90 backdrop-blur-md border border-slate-600/60 text-white text-sm font-medium items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0">
+            <span id="toast-icon" class="flex-shrink-0"></span>
+            <span id="toast-message" class="flex-1"></span>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <!-- Header dengan animasi -->
+        <header class="text-center mb-12 animate-fade-in-up">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold tracking-wider mb-4 backdrop-blur-sm">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                🛜 100% Client‑Side • Aman & Privat
+            </div>
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight">
+                <span class="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">FStore</span><br>
+                <span class="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">Authentic Migration Decoder</span>
+            </h1>
+            <p class="text-slate-400 max-w-2xl mx-auto mt-5 text-base sm:text-lg leading-relaxed">
+                Tempel tautan <code class="px-2 py-0.5 bg-slate-800/80 rounded-lg text-blue-300 font-mono text-sm">otpauth-migration://offline?data=...</code> di bawah.<br>
+                Setiap decode tersimpan dalam riwayat lokal — tidak ada data dikirim ke server.
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Kolom Kiri: Input + Hasil (2/3 lebar) -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Input Section -->
+                <section class="animate-fade-in-up" style="animation-delay: 0.1s;">
+                    <div class="glass-card p-5 sm:p-7 transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-500/40">
+                        <label class="block text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            Migration Link
+                        </label>
+                        <div class="relative">
+                            <textarea id="migration-link" rows="3" placeholder="otpauth-migration://offline?data=CiAKECeKz1..." 
+                                class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-4 py-3.5 text-sm font-mono text-slate-200 placeholder:text-slate-500 resize-y focus:outline-none focus:border-blue-500/70 transition-all duration-200"></textarea>
+                            <button id="clear-input-btn" 
+                                class="absolute top-3 right-3 p-1.5 rounded-lg bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white transition-all duration-200 opacity-0 pointer-events-none"
+                                title="Clear input">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
+                            <button id="decode-btn"
+                                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-blue-600/20 transition-all duration-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+                                Decode & Tampilkan
+                            </button>
+                            <span id="validation-badge" class="hidden text-xs font-semibold px-3 py-1.5 rounded-full border bg-opacity-30 backdrop-blur-sm"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Results Section -->
+                <section id="results-section" class="hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+                        <h2 class="text-2xl font-bold flex items-center gap-2">
+                            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <span id="accounts-count">0 Akun Ditemukan</span>
+                        </h2>
+                        <div id="global-countdown-badge" class="hidden items-center gap-2 px-4 py-2 bg-slate-800/60 rounded-full text-sm font-semibold border border-slate-700/60">
+                            <svg class="w-4 h-4 text-amber-400 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Refresh: <span id="global-countdown-text" class="text-white tabular-nums w-8 inline-block">30s</span>
+                        </div>
+                    </div>
+                    <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-fr"></div>
+                    <div id="empty-state" class="hidden text-center py-16 glass-card mt-4">
+                        <div class="w-20 h-20 mx-auto mb-5 rounded-full bg-slate-800/50 flex items-center justify-center">
+                            <svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                        </div>
+                        <p class="text-slate-300 text-lg">Tidak ada akun dalam link migrasi ini.</p>
+                        <p class="text-slate-500 text-sm mt-1">Periksa kembali tautan Anda.</p>
+                    </div>
+                </section>
+
+                <!-- Error Section -->
+                <section id="error-section" class="hidden animate-fade-in-up">
+                    <div class="glass-card !bg-red-950/30 border-red-500/40 p-5 flex gap-4 items-start">
+                        <div class="p-2 rounded-full bg-red-900/50">
+                            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-red-300 font-semibold">Gagal Mendekode</h3>
+                            <p id="error-message" class="text-red-200/80 text-sm mt-1"></p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Kolom Kanan: Riwayat Decode -->
+            <div class="lg:col-span-1">
+                <div class="glass-card p-5 sticky top-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Riwayat Decode
+                        </h3>
+                        <button id="clear-history-btn" class="text-xs text-red-400 hover:text-red-300 transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            Hapus semua
+                        </button>
+                    </div>
+                    <div id="history-list" class="max-h-[70vh] overflow-y-auto space-y-2 pr-1">
+                        <div class="text-center text-slate-500 text-sm py-8 italic">Belum ada riwayat decode. Lakukan decode untuk menyimpan.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center text-xs text-slate-500 mt-16 pb-6 border-t border-slate-800/40 pt-6">
+            <p>🔒 Sepenuhnya berjalan di sisi klien • Web Crypto API • Data riwayat disimpan di localStorage peramban Anda</p>
+            <p class="mt-1">Dibangun dengan Tailwind CSS, protobufjs, QRCode.js • FStore Authentic Migration Decoder</p>
+        </footer>
+    </main>
+
+    <script>
+        (function() {
+            // --- DOM elements
+            const textarea = document.getElementById('migration-link');
+            const decodeBtn = document.getElementById('decode-btn');
+            const clearBtn = document.getElementById('clear-input-btn');
+            const validationBadge = document.getElementById('validation-badge');
+            const resultsSection = document.getElementById('results-section');
+            const cardsGrid = document.getElementById('cards-grid');
+            const emptyState = document.getElementById('empty-state');
+            const errorSection = document.getElementById('error-section');
+            const errorMsgSpan = document.getElementById('error-message');
+            const accountsCountSpan = document.getElementById('accounts-count');
+            const globalCountdownText = document.getElementById('global-countdown-text');
+            const globalCountdownBadge = document.getElementById('global-countdown-badge');
+            const toastContainer = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastMessage = document.getElementById('toast-message');
+            const historyContainer = document.getElementById('history-list');
+            const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+            // --- state
+            let parsedAccounts = [];
+            let otpInterval = null;
+            let lastRemaining = -1;
+            let lastOtpCache = {};
+            const qrcodeAvailable = typeof QRCode !== 'undefined';
+
+            // --- History storage
+            let historyData = []; // array of { id, timestamp, accounts (full), summary }
+            const STORAGE_KEY = 'fstore_2fa_history';
+
+            function loadHistoryFromStorage() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    try {
+                        historyData = JSON.parse(stored);
+                        // Re-construct accounts object (secret bytes need to be restored as Uint8Array)
+                        historyData = historyData.map(item => ({
+                            ...item,
+                            accounts: item.accounts.map(acc => ({
+                                ...acc,
+                                secret: new Uint8Array(acc.secret) // because stored as array
+                            }))
+                        }));
+                    } catch(e) { historyData = []; }
+                } else {
+                    historyData = [];
+                }
+                renderHistoryList();
+            }
+
+            function saveHistoryToStorage() {
+                // Convert Uint8Array secret to array for JSON
+                const toStore = historyData.map(item => ({
+                    ...item,
+                    accounts: item.accounts.map(acc => ({
+                        ...acc,
+                        secret: Array.from(acc.secret)
+                    }))
+                }));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+            }
+
+            function addHistory(accounts) {
+                const timestamp = Date.now();
+                const id = 'hist_' + timestamp;
+                const summary = accounts.map(acc => {
+                    const issuerPart = acc.issuer ? acc.issuer : '';
+                    const namePart = acc.name;
+                    return issuerPart ? `${issuerPart} (${namePart})` : namePart;
+                });
+                const newItem = {
+                    id,
+                    timestamp,
+                    accounts: accounts, // full accounts data
+                    summary: summary
+                };
+                historyData.unshift(newItem); // terbaru di atas
+                // Batasi maksimal 20 riwayat
+                if (historyData.length > 20) historyData.pop();
+                saveHistoryToStorage();
+                renderHistoryList();
+            }
+
+            function deleteAllHistory() {
+                historyData = [];
+                saveHistoryToStorage();
+                renderHistoryList();
+                showToast('Semua riwayat dihapus', 'success');
+            }
+
+            function formatRelativeTime(timestamp) {
+                const diff = Math.floor((Date.now() - timestamp) / 1000);
+                if (diff < 60) return `${diff} detik lalu`;
+                if (diff < 3600) return `${Math.floor(diff / 60)} menit lalu`;
+                if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
+                return new Date(timestamp).toLocaleString('id-ID', { hour: '2-digit', minute:'2-digit', day:'numeric', month:'short' });
+            }
+
+            function renderHistoryList() {
+                if (!historyContainer) return;
+                if (historyData.length === 0) {
+                    historyContainer.innerHTML = `<div class="text-center text-slate-500 text-sm py-8 italic">Belum ada riwayat decode. Lakukan decode untuk menyimpan.</div>`;
+                    return;
+                }
+                const html = historyData.map(item => {
+                    const timeStr = formatRelativeTime(item.timestamp);
+                    // Tampilkan maksimal 2 nama pertama, sisanya +N
+                    let summaryText = '';
+                    if (item.summary.length === 1) {
+                        summaryText = item.summary[0];
+                    } else if (item.summary.length === 2) {
+                        summaryText = `${item.summary[0]}, ${item.summary[1]}`;
+                    } else {
+                        summaryText = `${item.summary[0]}, ${item.summary[1]} +${item.summary.length - 2} lainnya`;
+                    }
+                    return `
+                        <div class="history-item glass-card p-3 cursor-pointer transition-all hover:bg-slate-700/30 rounded-xl" data-id="${item.id}">
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs text-blue-300 font-mono">${timeStr}</span>
+                                <span class="text-xs bg-slate-700/50 px-2 py-0.5 rounded-full">${item.summary.length} akun</span>
+                            </div>
+                            <p class="text-sm text-slate-200 mt-1 truncate" title="${item.summary.join(', ')}">${summaryText}</p>
+                        </div>
+                    `;
+                }).join('');
+                historyContainer.innerHTML = html;
+                // Attach click listeners
+                document.querySelectorAll('.history-item').forEach(el => {
+                    const id = el.dataset.id;
+                    el.addEventListener('click', () => loadHistoryById(id));
+                });
+            }
+
+            async function loadHistoryById(id) {
+                const found = historyData.find(h => h.id === id);
+                if (!found) return;
+                // Hentikan OTP cycle lama
+                if (otpInterval) clearInterval(otpInterval);
+                // Set parsedAccounts dan render ulang
+                parsedAccounts = found.accounts;
+                await renderAllCards(parsedAccounts);
+                if (parsedAccounts.some(a => a.otpType !== 1)) {
+                    await startOtpRefresh(parsedAccounts);
+                } else {
+                    if (globalCountdownBadge) globalCountdownBadge.classList.add('hidden');
+                }
+                resultsSection.classList.remove('hidden');
+                errorSection.classList.add('hidden');
+                showToast(`Memuat riwayat: ${found.summary.length} akun`, 'success');
+            }
+
+            // --- helpers
+            function showToast(msg, type = 'success') {
+                toastContainer.classList.remove('hidden');
+                toastContainer.style.transform = 'translateY(0)';
+                toastContainer.style.opacity = '1';
+                toastMessage.innerText = msg;
+                let iconSvg = '';
+                if (type === 'success') iconSvg = '<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+                else if (type === 'error') iconSvg = '<svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+                else iconSvg = '<svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>';
+                toastIcon.innerHTML = iconSvg;
+                clearTimeout(window.toastTimeout);
+                window.toastTimeout = setTimeout(() => {
+                    toastContainer.style.transform = 'translateY(20px)';
+                    toastContainer.style.opacity = '0';
+                    setTimeout(() => toastContainer.classList.add('hidden'), 300);
+                }, 2800);
+            }
+
+            async function copyText(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    showToast('Disalin ke clipboard!', 'success');
+                    return true;
+                } catch {
+                    const ta = Object.assign(document.createElement('textarea'), { value: text, style: 'position:fixed;opacity:0' });
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast('Disalin!', 'success');
+                    return true;
+                }
+            }
+
+            function escapeHTML(str) { return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+            function sanitizeFilename(s) { return s.replace(/[^a-z0-9_\- ]/gi, '_').substring(0, 50); }
+
+            // --- protobuf decoding
+            function base64urlToBytes(str) {
+                let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+                while (b64.length % 4) b64 += '=';
+                const bin = atob(b64);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                return bytes;
+            }
+
+            function base32Encode(bytes) {
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+                let bits = 0, value = 0, output = '';
+                for (let i = 0; i < bytes.length; i++) {
+                    value = (value << 8) | bytes[i];
+                    bits += 8;
+                    while (bits >= 5) {
+                        output += alphabet[(value >>> (bits - 5)) & 31];
+                        bits -= 5;
+                    }
+                }
+                if (bits > 0) output += alphabet[(value << (5 - bits)) & 31];
+                while (output.length % 8) output += '=';
+                return output;
+            }
+
+            function decodeMigrationPayload(buffer) {
+                const root = protobuf.Root.fromJSON({
+                    nested: {
+                        MigrationPayload: { fields: { otp_parameters: { rule: 'repeated', type: 'OtpParameters', id: 1 }, version: { type: 'int32', id: 2 } } },
+                        OtpParameters: { fields: { secret: { type: 'bytes', id: 1 }, name: { type: 'string', id: 2 }, issuer: { type: 'string', id: 3 }, algorithm: { type: 'int32', id: 4 }, digits: { type: 'int32', id: 5 }, type: { type: 'int32', id: 6 }, counter: { type: 'int64', id: 7 } } }
+                    }
+                });
+                const MigrationPayload = root.lookupType('MigrationPayload');
+                const decoded = MigrationPayload.decode(buffer);
+                const obj = MigrationPayload.toObject(decoded, { longs: Number, bytes: Array });
+                const accounts = [];
+                for (const param of (obj.otp_parameters || [])) {
+                    const secretBytes = new Uint8Array(param.secret || []);
+                    if (!secretBytes.length) continue;
+                    const secretB32 = base32Encode(secretBytes);
+                    const algo = param.algorithm || 0;
+                    const digits = [6,6,8][param.digits] || 6;
+                    const typeNum = param.type || 2;
+                    const issuer = param.issuer || '';
+                    const name = param.name || 'Akun';
+                    const counter = Number(param.counter) || 0;
+                    const algoName = ['SHA1','SHA1','SHA256','SHA512','SHA1'][algo] || 'SHA1';
+                    const webHash = ['SHA-1','SHA-1','SHA-256','SHA-512','SHA-1'][algo] || 'SHA-1';
+                    const label = issuer ? `${encodeURIComponent(issuer)}:${encodeURIComponent(name)}` : encodeURIComponent(name);
+                    const uri = typeNum === 1 ?
+                        `otpauth://hotp/${label}?secret=${secretB32}&issuer=${encodeURIComponent(issuer)}&algorithm=${algoName}&digits=${digits}&counter=${counter}` :
+                        `otpauth://totp/${label}?secret=${secretB32}&issuer=${encodeURIComponent(issuer)}&algorithm=${algoName}&digits=${digits}&period=30`;
+                    accounts.push({ secret: secretBytes, secretBase32: secretB32, name, issuer, algoName, webCryptoHash: webHash, digits, otpType: typeNum, typeName: typeNum===1?'HOTP':'TOTP', counter, uri });
+                }
+                return accounts;
+            }
+
+            async function generateTOTP(secretBytes, hashAlgo, digits, timestamp = Date.now()) {
+                const period = 30;
+                const counter = Math.floor(timestamp / 1000 / period);
+                const buffer = new ArrayBuffer(8);
+                const view = new DataView(buffer);
+                view.setUint32(0, Math.floor(counter / 0x100000000), false);
+                view.setUint32(4, counter >>> 0, false);
+                const key = await crypto.subtle.importKey('raw', secretBytes, { name: 'HMAC', hash: hashAlgo }, false, ['sign']);
+                const sig = await crypto.subtle.sign('HMAC', key, buffer);
+                const hmac = new Uint8Array(sig);
+                const offset = hmac[hmac.length - 1] & 0xf;
+                const code = ((hmac[offset] & 0x7f) << 24 | (hmac[offset+1] & 0xff) << 16 | (hmac[offset+2] & 0xff) << 8 | (hmac[offset+3] & 0xff)) % Math.pow(10, digits);
+                return code.toString().padStart(digits, '0');
+            }
+
+            // --- UI Rendering (sama seperti sebelumnya, dengan sedikit penyesuaian)
+            function buildCard(account, idx) {
+                const card = document.createElement('div');
+                card.className = 'glass-card p-5 flex flex-col gap-4 transition-all duration-300 animate-fade-in-up hover:scale-[1.01]';
+                card.style.animationDelay = `${idx * 0.05}s`;
+                const titleHtml = account.issuer ?
+                    `<div><span class="text-xs font-semibold text-blue-300 uppercase">${escapeHTML(account.issuer)}</span><div class="text-white font-bold text-lg">${escapeHTML(account.name)}</div></div>` :
+                    `<div class="text-white font-bold text-lg">${escapeHTML(account.name)}</div>`;
+                const otpArea = account.otpType === 1 ?
+                    `<div class="text-center py-2"><span class="text-2xl font-mono font-bold text-amber-400">HOTP</span><div class="text-xs text-slate-400 mt-1">Counter: ${account.counter}</div></div>` :
+                    `<div class="relative group/otp bg-slate-900/50 rounded-xl py-3 text-center cursor-pointer" id="otp-wrapper-${idx}">
+                        <span id="otp-code-${idx}" class="text-4xl sm:text-5xl font-mono font-black tracking-wider text-white hover:text-emerald-300 transition">--- ---</span>
+                        <button class="copy-otp-btn absolute top-2 right-2 p-1.5 rounded-lg bg-slate-700/60 opacity-0 group-hover/otp:opacity-100 transition-all" data-idx="${idx}" title="Salin OTP"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+                    </div>`;
+
+                card.innerHTML = `
+                    <div class="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden"><div id="progress-fill-${idx}" class="progress-fill h-full rounded-full bg-emerald-500" style="width:100%"></div></div>
+                    ${titleHtml}
+                    ${otpArea}
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Secret Key (Base32)</p>
+                        <div class="relative bg-slate-900/60 rounded-xl border border-slate-700/50 overflow-hidden group/secret">
+                            <div id="secret-display-${idx}" class="secret-blurred px-3 py-2 text-xs font-mono text-slate-300 break-all">${escapeHTML(account.secretBase32)}</div>
+                            <button class="toggle-secret absolute inset-0 w-full h-full flex items-center justify-center gap-2 bg-slate-900/50 hover:bg-slate-900/30 transition" data-idx="${idx}"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg><span class="text-sm font-medium">Reveal</span></button>
+                        </div>
+                        <button class="copy-secret-btn mt-2 text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 transition" data-idx="${idx}"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Salin Secret</button>
+                    </div>
+                    <div id="qr-area-${idx}" class="flex flex-col items-center gap-2 mt-2"></div>
+                `;
+                return card;
+            }
+
+            async function renderAllCards(accounts) {
+                cardsGrid.innerHTML = '';
+                if (!accounts.length) {
+                    emptyState.classList.remove('hidden');
+                    accountsCountSpan.innerText = '0 Akun';
+                    globalCountdownBadge.classList.add('hidden');
+                    return;
+                }
+                emptyState.classList.add('hidden');
+                globalCountdownBadge.classList.remove('hidden');
+                accountsCountSpan.innerText = `${accounts.length} Akun${accounts.length > 1 ? '' : ''}`;
+                for (let i = 0; i < accounts.length; i++) {
+                    const card = buildCard(accounts[i], i);
+                    cardsGrid.appendChild(card);
+                }
+                await new Promise(r => requestAnimationFrame(r));
+                for (let i = 0; i < accounts.length; i++) {
+                    const qrContainer = document.getElementById(`qr-area-${i}`);
+                    if (qrContainer && qrcodeAvailable) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 130; canvas.height = 130;
+                        canvas.className = 'rounded-xl shadow-md bg-white p-1';
+                        qrContainer.appendChild(canvas);
+                        try {
+                            await QRCode.toCanvas(canvas, accounts[i].uri, { width: 130, margin: 1 });
+                            const downloadBtn = document.createElement('button');
+                            downloadBtn.className = 'text-xs text-blue-400 hover:text-blue-300 flex gap-1 items-center mt-2 transition';
+                            downloadBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Download QR';
+                            downloadBtn.onclick = async () => {
+                                const bigCanvas = document.createElement('canvas');
+                                bigCanvas.width = 600; bigCanvas.height = 600;
+                                await QRCode.toCanvas(bigCanvas, accounts[i].uri, { width: 600 });
+                                bigCanvas.toBlob(blob => {
+                                    const a = document.createElement('a');
+                                    a.href = URL.createObjectURL(blob);
+                                    a.download = `${sanitizeFilename(accounts[i].issuer || '')}_${sanitizeFilename(accounts[i].name)}_2FA.png`;
+                                    a.click();
+                                    URL.revokeObjectURL(a.href);
+                                    showToast('QR tersimpan', 'success');
+                                });
+                            };
+                            qrContainer.appendChild(downloadBtn);
+                        } catch(e) { console.warn(e); }
+                    } else if (qrContainer) {
+                        qrContainer.innerHTML = '<div class="text-xs text-slate-400 italic px-2 py-1">QR tidak tersedia</div>';
+                    }
+                }
+                attachEvents(accounts);
+            }
+
+            function attachEvents(accounts) {
+                for (let i = 0; i < accounts.length; i++) {
+                    const toggleBtn = document.querySelector(`.toggle-secret[data-idx="${i}"]`);
+                    const secretDiv = document.getElementById(`secret-display-${i}`);
+                    if (toggleBtn && secretDiv) {
+                        toggleBtn.addEventListener('click', () => {
+                            const isBlurred = secretDiv.classList.contains('secret-blurred');
+                            if (isBlurred) {
+                                secretDiv.classList.remove('secret-blurred'); secretDiv.classList.add('secret-visible');
+                                toggleBtn.querySelector('span').innerText = 'Hide';
+                                toggleBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.035 10.035 0 013.317-4.688M6.344 6.344A9.96 9.96 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.035 10.035 0 01-1.317 2.313M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><line x1="3" y1="3" x2="21" y2="21"/>';
+                            } else {
+                                secretDiv.classList.add('secret-blurred'); secretDiv.classList.remove('secret-visible');
+                                toggleBtn.querySelector('span').innerText = 'Reveal';
+                                toggleBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+                            }
+                        });
+                    }
+                    document.querySelector(`.copy-secret-btn[data-idx="${i}"]`)?.addEventListener('click', () => copyText(accounts[i].secretBase32));
+                    if (accounts[i].otpType !== 1) {
+                        document.querySelector(`.copy-otp-btn[data-idx="${i}"]`)?.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const otpSpan = document.getElementById(`otp-code-${i}`);
+                            if (otpSpan && otpSpan.innerText !== '--- ---') copyText(otpSpan.innerText.replace(/\s/g, ''));
+                        });
+                        document.getElementById(`otp-wrapper-${i}`)?.addEventListener('click', () => {
+                            const otpSpan = document.getElementById(`otp-code-${i}`);
+                            if (otpSpan && otpSpan.innerText !== '--- ---') copyText(otpSpan.innerText.replace(/\s/g, ''));
+                        });
+                    }
+                }
+            }
+
+            async function startOtpRefresh(accounts) {
+                if (otpInterval) clearInterval(otpInterval);
+                let lastSec = -1;
+                async function tick() {
+                    const now = Date.now();
+                    const remain = 30 - (Math.floor(now / 1000) % 30);
+                    globalCountdownText && (globalCountdownText.innerText = `${remain}s`);
+                    for (let i = 0; i < accounts.length; i++) {
+                        const acc = accounts[i];
+                        const progressFill = document.getElementById(`progress-fill-${i}`);
+                        if (progressFill) {
+                            const percent = (remain / 30) * 100;
+                            progressFill.style.width = `${percent}%`;
+                            progressFill.style.backgroundColor = remain <= 5 ? '#ef4444' : (remain <= 15 ? '#f59e0b' : '#10b981');
+                        }
+                        if (acc.otpType !== 1) {
+                            const otpEl = document.getElementById(`otp-code-${i}`);
+                            if (otpEl && (remain === 30 || lastSec === -1 || remain === 29)) {
+                                const code = await generateTOTP(acc.secret, acc.webCryptoHash, acc.digits, now);
+                                if (code) {
+                                    const fmt = code.length === 6 ? code.slice(0,3)+' '+code.slice(3) : (code.length===8?code.slice(0,4)+' '+code.slice(4):code);
+                                    if (lastOtpCache[i] !== fmt) {
+                                        otpEl.innerText = fmt;
+                                        otpEl.classList.add('otp-flash');
+                                        setTimeout(() => otpEl.classList.remove('otp-flash'), 500);
+                                        lastOtpCache[i] = fmt;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    lastSec = remain;
+                }
+                await tick();
+                otpInterval = setInterval(tick, 1000);
+            }
+
+            async function decodeAndShow(link) {
+                const trimmed = link.trim();
+                if (!trimmed.startsWith('otpauth-migration://offline?data=')) throw new Error('Format tautan tidak valid. Harus diawali dengan otpauth-migration://offline?data=');
+                const dataParam = trimmed.substring('otpauth-migration://offline?data='.length);
+                const decodedParam = decodeURIComponent(dataParam);
+                const bytes = base64urlToBytes(decodedParam);
+                const accounts = decodeMigrationPayload(bytes);
+                if (!accounts.length) throw new Error('Tidak ada akun dalam data migrasi.');
+                return accounts;
+            }
+
+            async function handleDecode() {
+                const link = textarea.value.trim();
+                if (!link) { showToast('Masukkan tautan migrasi terlebih dahulu.', 'warning'); return; }
+                resultsSection.classList.add('hidden');
+                errorSection.classList.add('hidden');
+                decodeBtn.disabled = true;
+                decodeBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Memproses...';
+                try {
+                    const accounts = await decodeAndShow(link);
+                    parsedAccounts = accounts;
+                    await renderAllCards(accounts);
+                    if (otpInterval) clearInterval(otpInterval);
+                    if (accounts.some(a => a.otpType !== 1)) await startOtpRefresh(accounts);
+                    resultsSection.classList.remove('hidden');
+                    errorSection.classList.add('hidden');
+                    // Simpan ke histori
+                    addHistory(accounts);
+                    showToast(`Berhasil memuat ${accounts.length} akun`, 'success');
+                } catch (err) {
+                    resultsSection.classList.remove('hidden');
+                    emptyState.classList.add('hidden');
+                    errorSection.classList.remove('hidden');
+                    errorMsgSpan.innerText = err.message;
+                    showToast(err.message, 'error');
+                    if (otpInterval) clearInterval(otpInterval);
+                    globalCountdownBadge.classList.add('hidden');
+                } finally {
+                    decodeBtn.disabled = false;
+                    decodeBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg> Decode & Tampilkan';
+                }
+            }
+
+            function validateLinkLive() {
+                const val = textarea.value.trim();
+                if (!val) { validationBadge.classList.add('hidden'); clearBtn.classList.add('opacity-0','pointer-events-none'); return; }
+                clearBtn.classList.remove('opacity-0','pointer-events-none');
+                if (val.startsWith('otpauth-migration://offline?data=')) {
+                    validationBadge.className = 'text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-500/40 bg-emerald-950/30 text-emerald-400 backdrop-blur-sm';
+                    validationBadge.innerHTML = '✓ Format tautan valid';
+                    validationBadge.classList.remove('hidden');
+                } else {
+                    validationBadge.className = 'text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-500/40 bg-amber-950/30 text-amber-400';
+                    validationBadge.innerHTML = '⚠ Format tidak dikenal';
+                    validationBadge.classList.remove('hidden');
+                }
+            }
+
+            // Event listeners
+            clearBtn.addEventListener('click', () => {
+                textarea.value = '';
+                validateLinkLive();
+                resultsSection.classList.add('hidden');
+                errorSection.classList.add('hidden');
+                if (otpInterval) clearInterval(otpInterval);
+            });
+            decodeBtn.addEventListener('click', handleDecode);
+            textarea.addEventListener('input', validateLinkLive);
+            textarea.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleDecode(); });
+            clearHistoryBtn.addEventListener('click', () => deleteAllHistory());
+
+            if (!window.crypto?.subtle) {
+                errorSection.classList.remove('hidden');
+                errorMsgSpan.innerText = 'Web Crypto API tidak tersedia. Pastikan akses melalui HTTPS atau localhost.';
+                decodeBtn.disabled = true;
+            }
+
+            // Inisialisasi histori dari storage
+            loadHistoryFromStorage();
+            validateLinkLive();
+        })();
+    </script>
+</body>
+</html>
